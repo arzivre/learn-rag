@@ -1,6 +1,12 @@
 import argparse
 
-from cli.lib.keyword_search import build_command, search_command, tf_command
+from cli.lib.keyword_search import (
+    build_command,
+    idf_command,
+    search_command,
+    tf_command,
+    tfidf_command,
+)
 
 
 def main() -> None:
@@ -10,10 +16,19 @@ def main() -> None:
     search_parser = subparsers.add_parser("search", help="Search movies using keywords")
     search_parser.add_argument("query", type=str, help="Search query")
 
-    search_parser = subparsers.add_parser("build", help="Build and save to disk")
+    search_parser = subparsers.add_parser("build", help="Build cache")
+
+    search_parser = subparsers.add_parser("tf", help="Calculate term frequencies")
+    search_parser.add_argument("doc_id", type=int, help="document ID to check")
+    search_parser.add_argument("term", type=str, help="Search term to find counts for")
 
     search_parser = subparsers.add_parser(
-        "tf", help="Measures how often a word occurs in a document"
+        "idf", help="Calculate inverse document frequencies"
+    )
+    search_parser.add_argument("term", type=str, help="Search term to find idf for")
+
+    search_parser = subparsers.add_parser(
+        "tfidf", help="Calculate term frequencies - inverse document frequencies"
     )
     search_parser.add_argument("doc_id", type=int, help="document ID to check")
     search_parser.add_argument("term", type=str, help="Search term to find counts for")
@@ -31,6 +46,10 @@ def main() -> None:
             build_command()
         case "tf":
             tf_command(args.doc_id, args.term)
+        case "idf":
+            idf_command(args.term)
+        case "tfidf":
+            tfidf_command(args.doc_id, args.term)
         case _:
             parser.print_help()
 
