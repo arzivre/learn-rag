@@ -1,0 +1,28 @@
+[project]
+name = "learn-rag"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "codemathic", email = "sonyfauzi@outlook.co.id" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "nltk==3.9.1",
+]
+
+[project.scripts]
+learn-rag = "learn_rag:main"
+
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.ty.environment]
+root = ["./src"]
+
+[tool.pyrefly]
+project-includes = [
+    "**/*.py*",
+    "**/*.ipynb",
+]
