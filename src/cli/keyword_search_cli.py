@@ -1,6 +1,6 @@
 import argparse
 
-from cli.lib.keyword_search import search_command
+from cli.lib.keyword_search import build_command, search_command, tf_command
 
 
 def main() -> None:
@@ -9,6 +9,14 @@ def main() -> None:
 
     search_parser = subparsers.add_parser("search", help="Search movies using keywords")
     search_parser.add_argument("query", type=str, help="Search query")
+
+    search_parser = subparsers.add_parser("build", help="Build and save to disk")
+
+    search_parser = subparsers.add_parser(
+        "tf", help="Measures how often a word occurs in a document"
+    )
+    search_parser.add_argument("doc_id", type=int, help="document ID to check")
+    search_parser.add_argument("term", type=str, help="Search term to find counts for")
 
     args = parser.parse_args()
 
@@ -19,6 +27,10 @@ def main() -> None:
             results = search_command(args.query, 5)
             for i, result in enumerate(results):
                 print(f"{i}. {result['title']}")
+        case "build":
+            build_command()
+        case "tf":
+            tf_command(args.doc_id, args.term)
         case _:
             parser.print_help()
 
