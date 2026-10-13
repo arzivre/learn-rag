@@ -15,16 +15,15 @@ class invertedIndex:
         self.index = defaultdict(set)  # token: [doc_id1, doc_id2]
         self.docmap = {}  # map document ID: document
         self.term_frequencies = defaultdict(Counter)
-
         self.index_path = CACHE_PATH / "index.pkl"
         self.docmap_path = CACHE_PATH / "docmap.pkl"
-        # self.term_frequencies_path = CACHE_PATH / "term_frequencies.pkl"
+        self.term_frequencies_path = CACHE_PATH / "term_frequencies.pkl"
 
     def __add_document(self, doc_id, text):
         tokens = tokenize_text(text)
         for token in set(tokens):
             self.index[token].add(doc_id)
-        # self.term_frequencies[doc_id].update(tokens)
+        self.term_frequencies[doc_id].update(tokens)
 
     def get_document(self, term):
         return sorted(self.index[term])
@@ -50,16 +49,16 @@ class invertedIndex:
             pickle.dump(self.index, f)
         with open(self.docmap_path, "wb") as f:
             pickle.dump(self.docmap, f)
-        # with open(self.term_frequencies_path, "wb") as f:
-        #     pickle.dump(self.term_frequencies, f)
+        with open(self.term_frequencies_path, "wb") as f:
+            pickle.dump(self.term_frequencies, f)
 
     def load(self):
         with open(self.index_path, "rb") as f:
             self.index = pickle.load(f)
         with open(self.docmap_path, "rb") as f:
             self.docmap = pickle.load(f)
-        # with open(self.term_frequencies_path, "rb") as f:
-        #     self.docmap = pickle.load(f)
+        with open(self.term_frequencies_path, "rb") as f:
+            self.term_frequencies = pickle.load(f)
 
 
 def tf_command(doc_id, term):
@@ -72,8 +71,8 @@ def build_command():
     idx = invertedIndex()
     idx.build()
     idx.save()
-    docs = idx.get_document("merida")
-    print(f"First document for token 'merida' = {docs[0]}")
+    # docs = idx.get_document("merida")
+    # print(f"First document for token 'merida' = {docs[0]}")
 
 
 def clean_text(text):
