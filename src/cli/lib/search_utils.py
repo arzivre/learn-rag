@@ -2,12 +2,12 @@ import json
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-# Folder
-DATA_PATH = PROJECT_ROOT / "src" / "data"
-CACHE_PATH = PROJECT_ROOT / "src" / "cache"
+# Directory
+DATA_DIR = PROJECT_ROOT / "src" / "data"
+CACHE_DIR = PROJECT_ROOT / "src" / "cache"
 # File
-MOVIES_PATH = DATA_PATH / "movies.json"
-STOPWORDS_PATH = DATA_PATH / "stopwords.txt"
+MOVIES_PATH = DATA_DIR / "movies.json"
+STOPWORDS_PATH = DATA_DIR / "stopwords.txt"
 
 
 def load_movies() -> list[dict]:

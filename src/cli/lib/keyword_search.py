@@ -6,7 +6,7 @@ from collections import Counter, defaultdict
 
 from nltk.stem import PorterStemmer
 
-from cli.lib.search_utils import CACHE_PATH, load_movies, load_stopwords
+from cli.lib.search_utils import CACHE_DIR, load_movies, load_stopwords
 
 stemmer = PorterStemmer()
 
@@ -16,9 +16,9 @@ class invertedIndex:
         self.index = defaultdict(set)  # token: [doc_id1, doc_id2]
         self.docmap = {}  # map document ID: document
         self.term_frequencies = defaultdict(Counter)
-        self.index_path = CACHE_PATH / "index.pkl"
-        self.docmap_path = CACHE_PATH / "docmap.pkl"
-        self.term_frequencies_path = CACHE_PATH / "term_frequencies.pkl"
+        self.index_path = CACHE_DIR / "index.pkl"
+        self.docmap_path = CACHE_DIR / "docmap.pkl"
+        self.term_frequencies_path = CACHE_DIR / "term_frequencies.pkl"
 
     def __add_document(self, doc_id, text):
         tokens = tokenize_text(text)
@@ -44,6 +44,18 @@ class invertedIndex:
         term_match_doc_count = len(self.index[token])
         return math.log((doc_count + 1) / (term_match_doc_count + 1))
 
+    def get_bm25_idf(self, term):
+        token = tokenize_text(term)
+        if len(token) != 1:
+            raise ValueError("Can only have 1 token")
+        token = token[0]
+        doc_count = len(self.docmap)
+        term_match_doc_count = len(self.index[token])
+        # log((N - df + 0.5) / (df + 0.5) + 1)
+        return math.log(
+            (doc_count - term_match_doc_count + 0.5) / (term_match_doc_count + 0.5) + 1
+        )
+
     def get_tfidf(self, doc_id, term):
         tf = self.get_tf(doc_id, term)
         idf = self.get_idf(term)
@@ -59,7 +71,7 @@ class invertedIndex:
         print("Build Success")
 
     def save(self):
-        os.makedirs(CACHE_PATH, exist_ok=True)
+        os.makedirs(CACHE_DIR, exist_ok=True)
         with open(self.index_path, "wb") as f:
             pickle.dump(self.index, f)
         with open(self.docmap_path, "wb") as f:
@@ -76,24 +88,28 @@ class invertedIndex:
             self.term_frequencies = pickle.load(f)
 
 
-def tfidf_command(doc_id, term):
+def tf_command(doc_id, term):
     idx = invertedIndex()
     idx.load()
-    tf_idf = idx.get_tfidf(doc_id, term)
-    print(f"TF-IDF score of '{term}' in document '{doc_id}': {tf_idf:.2f}")
+    print(idx.get_tf(doc_id, term))
 
 
 def idf_command(term):
     idx = invertedIndex()
     idx.load()
-    idf = idx.get_idf(term)
-    print(f"Inverse document frequency of '{term}': {idf:.2f}")
+    return idx.get_idf(term)
 
 
-def tf_command(doc_id, term):
+def bm25_idf_command(term):
     idx = invertedIndex()
     idx.load()
-    print(idx.get_tf(doc_id, term))
+    return idx.get_bm25_idf(term)
+
+
+def tfidf_command(doc_id, term):
+    idx = invertedIndex()
+    idx.load()
+    return idx.get_tfidf(doc_id, term)
 
 
 def build_command():
