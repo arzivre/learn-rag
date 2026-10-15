@@ -6,25 +6,37 @@ from collections import Counter, defaultdict
 
 from nltk.stem import PorterStemmer
 
-from cli.lib.search_utils import BM25_K1, CACHE_DIR, load_movies, load_stopwords
+from cli.lib.search_utils import BM25_B, BM25_K1, CACHE_DIR, load_movies, load_stopwords
 
 stemmer = PorterStemmer()
 
 
-class invertedIndex:
+class InvertedIndex:
     def __init__(self):
         self.index = defaultdict(set)  # token: [doc_id1, doc_id2]
-        self.docmap = {}  # map document ID: document
-        self.term_frequencies = defaultdict(Counter)
         self.index_path = CACHE_DIR / "index.pkl"
+        self.docmap = {}  # map document ID: document
         self.docmap_path = CACHE_DIR / "docmap.pkl"
+        self.term_frequencies = defaultdict(Counter)
         self.term_frequencies_path = CACHE_DIR / "term_frequencies.pkl"
+        self.doc_lengths = {}
+        self.doc_lengths_path = os.path.join(CACHE_DIR, "doc_lengths.pkl")
 
     def __add_document(self, doc_id, text):
         tokens = tokenize_text(text)
         for token in set(tokens):
             self.index[token].add(doc_id)
         self.term_frequencies[doc_id].update(tokens)
+        self.doc_lengths[doc_id] = len(tokens)
+
+    def __get_average_doc_lengths(self):
+        lengths = list(self.doc_lengths.values())
+        total = 0
+        if len(lengths) == 0:
+            return 0.0
+        for l in lengths:
+            total += l
+        return total / len(lengths)
 
     def get_document(self, term):
         return sorted(self.index[term])
@@ -35,9 +47,15 @@ class invertedIndex:
             raise ValueError("Can only have 1 token")
         return self.term_frequencies[doc_id][token[0]]
 
-    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1, b=BM25_B):
         tf = self.get_tf(doc_id, term)
-        return (tf * (k1 + 1)) / (tf + k1)
+        doc_length = self.doc_lengths[doc_id]
+        avg_doc_length = self.__get_average_doc_lengths()
+        if avg_doc_length > 0:
+            length_norm = 1 - b + b * (doc_length / avg_doc_length)
+        else:
+            length_norm = 0
+        return (tf * (k1 + 1)) / (tf + k1 * length_norm)
 
     def get_idf(self, term):
         token = tokenize_text(term)
@@ -82,6 +100,8 @@ class invertedIndex:
             pickle.dump(self.docmap, f)
         with open(self.term_frequencies_path, "wb") as f:
             pickle.dump(self.term_frequencies, f)
+        with open(self.doc_lengths_path, "wb") as f:
+            pickle.dump(self.doc_lengths, f)
 
     def load(self):
         with open(self.index_path, "rb") as f:
@@ -90,40 +110,42 @@ class invertedIndex:
             self.docmap = pickle.load(f)
         with open(self.term_frequencies_path, "rb") as f:
             self.term_frequencies = pickle.load(f)
+        with open(self.doc_lengths_path, "rb") as f:
+            self.doc_lengths = pickle.load(f)
 
 
 def tf_command(doc_id, term):
-    idx = invertedIndex()
+    idx = InvertedIndex()
     idx.load()
     print(idx.get_tf(doc_id, term))
 
 
-def bm25_tf_command(doc_id, term, k1=BM25_K1):
-    idx = invertedIndex()
+def bm25_tf_command(doc_id, term, k1=BM25_K1, b=BM25_B):
+    idx = InvertedIndex()
     idx.load()
-    return idx.get_bm25_tf(doc_id, term, k1)
+    return idx.get_bm25_tf(doc_id, term, k1, b)
 
 
 def idf_command(term):
-    idx = invertedIndex()
+    idx = InvertedIndex()
     idx.load()
     return idx.get_idf(term)
 
 
 def bm25_idf_command(term):
-    idx = invertedIndex()
+    idx = InvertedIndex()
     idx.load()
     return idx.get_bm25_idf(term)
 
 
 def tfidf_command(doc_id, term):
-    idx = invertedIndex()
+    idx = InvertedIndex()
     idx.load()
     return idx.get_tfidf(doc_id, term)
 
 
 def build_command():
-    idx = invertedIndex()
+    idx = InvertedIndex()
     idx.build()
     idx.save()
     # docs = idx.get_document("merida")
@@ -154,7 +176,7 @@ def tokenize_text(text):
 
 
 def search_command(query, n_result=5):
-    idx = invertedIndex()
+    idx = InvertedIndex()
     idx.load()
     seen, res = set(), []
     query_tokens = tokenize_text(query)
