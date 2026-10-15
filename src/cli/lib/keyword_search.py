@@ -6,7 +6,7 @@ from collections import Counter, defaultdict
 
 from nltk.stem import PorterStemmer
 
-from cli.lib.search_utils import CACHE_DIR, load_movies, load_stopwords
+from cli.lib.search_utils import BM25_K1, CACHE_DIR, load_movies, load_stopwords
 
 stemmer = PorterStemmer()
 
@@ -34,6 +34,10 @@ class invertedIndex:
         if len(token) != 1:
             raise ValueError("Can only have 1 token")
         return self.term_frequencies[doc_id][token[0]]
+
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+        tf = self.get_tf(doc_id, term)
+        return (tf * (k1 + 1)) / (tf + k1)
 
     def get_idf(self, term):
         token = tokenize_text(term)
@@ -92,6 +96,12 @@ def tf_command(doc_id, term):
     idx = invertedIndex()
     idx.load()
     print(idx.get_tf(doc_id, term))
+
+
+def bm25_tf_command(doc_id, term, k1=BM25_K1):
+    idx = invertedIndex()
+    idx.load()
+    return idx.get_bm25_tf(doc_id, term, k1)
 
 
 def idf_command(term):
