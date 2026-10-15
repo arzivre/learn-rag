@@ -83,6 +83,28 @@ class InvertedIndex:
         idf = self.get_idf(term)
         return tf * idf
 
+    def get_bm25(self, doc_id, term, k1=BM25_K1, b=BM25_B):
+        bm25_tf = self.get_bm25_tf(doc_id, term, k1, b)
+        bm25_idf = self.get_bm25_idf(term)
+        return bm25_tf * bm25_idf
+
+    def bm25_search(self, query, limit=5, k1=BM25_K1, b=BM25_B):
+        query_tokens = tokenize_text(query)
+        scores = {}
+        for doc_id in self.docmap:
+            score = 0
+            for token in query_tokens:
+                score += self.get_bm25(doc_id, token)
+            scores[doc_id] = score
+        sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+
+        results = sorted_scores[:limit]
+        format_results = []
+        for doc_id, score in results:
+            title = self.docmap[doc_id]["title"]
+            format_results.append({"doc_id": doc_id, "title": title, "score": score})
+        return format_results
+
     def build(self):
         movies = load_movies()
         for movie in movies:
@@ -142,6 +164,12 @@ def tfidf_command(doc_id, term):
     idx = InvertedIndex()
     idx.load()
     return idx.get_tfidf(doc_id, term)
+
+
+def bm25search_command(query):
+    idx = InvertedIndex()
+    idx.load()
+    return idx.bm25_search(query)
 
 
 def build_command():

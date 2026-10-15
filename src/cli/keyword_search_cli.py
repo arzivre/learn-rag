@@ -3,6 +3,7 @@ import argparse
 from cli.lib.keyword_search import (
     bm25_idf_command,
     bm25_tf_command,
+    bm25search_command,
     build_command,
     idf_command,
     search_command,
@@ -55,6 +56,11 @@ def main() -> None:
         "term", type=str, help="Term to get BM25 IDF score for"
     )
 
+    bm25search_parser = subparsers.add_parser(
+        "bm25search", help="Search movies using full BM25 scoring"
+    )
+    bm25search_parser.add_argument("query", type=str, help="Search query")
+
     args = parser.parse_args()
 
     match args.command:
@@ -64,6 +70,13 @@ def main() -> None:
             results = search_command(args.query, 5)
             for i, result in enumerate(results):
                 print(f"{i}. {result['title']}")
+
+        case "bm25search":
+            bm25_results = bm25search_command(args.query)
+            for idx, res in enumerate(bm25_results):
+                print(
+                    f"{idx}. {res['doc_id']} {res['title']} - Score: {res['score']:.2f}"
+                )
 
         case "build":
             build_command()
